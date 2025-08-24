@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import style from './App.module.scss'
-import {useInterval} from "react-use";
+import {useInterval, useLocalStorage} from "react-use";
 import {useImmer} from "use-immer";
 
 interface SequenceItem {
@@ -14,22 +14,27 @@ function App() {
   const [sequence, setSequence] = useImmer<SequenceItem[]>([])
   const [currentIndex, setCurrentIndex] = useState<number>(-1)
   const [isPlaying, setIsPlaying] = useState<boolean>(false)
-  //설정
-  const [maxAnswerMs, setMaxAnswerMs] = useState<number>(5000)
   
+  //설정
+  const [maxAnswerMs, setMaxAnswerMs] = useLocalStorage<number>("maxAnswerMs",5000)
+  const [inputDelayMs, setInputDelayMs] = useLocalStorage<number>("inputDelayMs",1500)
+  const [sequenceLength, setSequenceLength] = useLocalStorage<number>("sequenceLength",10)
+  const [numberRange, setNumberRange] = useLocalStorage<number>("numberRange",4)
+  const [nBack, setNBack] = useLocalStorage<number>("nBack", 2)
+
   const currentSeqTimeMs = useRef<number>(0)
 
-  const canJudge = useMemo(() => currentIndex >= 2, [currentIndex])
+  const canJudge = useMemo(() => currentIndex >= nBack, [currentIndex, nBack])
   const currentSeq:SequenceItem|undefined = useMemo(()=>sequence[currentIndex],[currentIndex,sequence])
 
   const score = useMemo(()=> sequence.filter(s=>s.userAnswer === s.correctValue).length,[sequence])
   
   const generateSequence = () => {
     let result:SequenceItem[] = []
-    for (let i = 0; i < 10; i++) {
-      const number = Math.floor(Math.random() * 4) + 1
+    for (let i = 0; i < sequenceLength; i++) {
+      const number = Math.floor(Math.random() * numberRange) + 1
       let correctValue:"same"|"different"|"none" = "none";
-      if(i >= 2) correctValue = number === result[i - 2].number ? "same" : "different";
+      if (i >= nBack) correctValue = number === result[i - nBack].number ? "same" : "different";
       result.push({number, correctValue, userAnswer:undefined, answeredTimeMs:undefined})
     }
     setSequence(result)
@@ -66,7 +71,7 @@ function App() {
       return;
     }
     //정답을 입력하고 1.5초 후 다음 순서로 넘어감
-    if (currentSeq.answeredTimeMs !== undefined && currentSeq.answeredTimeMs + 1500 < currentSeqTimeMs.current) {
+    if (currentSeq.answeredTimeMs !== undefined && currentSeq.answeredTimeMs + inputDelayMs < currentSeqTimeMs.current) {
       goToNextItem()
       return;
     }
@@ -94,32 +99,19 @@ function App() {
 
 
   const statusText = isPlaying ? '진행중' : '정지'
-  const helperText = !canJudge && isPlaying ? '처음 두 개는 비교할 수 없어요' : '왼쪽 화살표=맞음, 오른쪽 화살표=틀림'
+  const helperText = !canJudge && isPlaying ? `처음 ${nBack}개는 비교할 수 없어요` : '왼쪽 화살표=맞음, 오른쪽 화살표=틀림'
 
   return (
     <div className={style.app}>
-      <h1>2-back</h1>
+      <h1>try N-back</h1>
       <div className={style.controls}>
         <button onClick={start} disabled={isPlaying}>시작</button>
         <button onClick={stop} disabled={!isPlaying}>정지</button>
-        <label className={style.speed}>
-          속도(ms):
-          <input
-            type="number"
-            min={500}
-            step={100}
-            value={maxAnswerMs}
-            onChange={e => setMaxAnswerMs(Number(e.target.value) || 0)}
-            disabled={isPlaying}
-          />
-        </label>
       </div>
-      <div>
-        <div>{"현재 답변시간 : "+(currentSeq?.answeredTimeMs ?? 0)}</div>
-      </div>
-
-      <div className={style.status}>
-        상태: {statusText} · 점수: {score}
+      <div className={style.info}>
+        <div>상태: {statusText}</div>
+        <div>{`문제: ${currentIndex + 1} / ${sequence.length}`}</div>
+        <div>점수: {score}</div>
       </div>
 
       <div className={style.board}>
@@ -129,6 +121,46 @@ function App() {
       </div>
 
       <div className={style.help}>{helperText}</div>
+      <div className={style.options}>
+        <label>
+          문제 갯수
+        </label>
+        <input type="number" min={3} step={1} max={100}
+               value={sequenceLength} disabled={isPlaying}
+               onChange={e => setSequenceLength(Number(e.target.value) || 3)}
+        />
+        <label>
+          숫자 범위
+        </label>
+        <input type="number" min={2} step={1} max={9}
+               value={numberRange} disabled={isPlaying}
+               onChange={e => setNumberRange(Number(e.target.value) || 2)}
+        />
+        <label>
+          N-back
+        </label>
+        <input type="number" min={1} step={1} max={5}
+               value={nBack} disabled={isPlaying}
+               onChange={e => setNBack(Number(e.target.value) || 1)}
+        />
+
+
+        <label>
+          최대 답변시간(ms)
+        </label>
+        <input type="number" min={500} step={100}
+               value={maxAnswerMs} disabled={isPlaying}
+               onChange={e => setMaxAnswerMs(Number(e.target.value) || 0)}
+        />
+        
+        <label>
+          입력 후 대기시간(ms)
+        </label>
+        <input type="number" min={500} step={100}
+               value={inputDelayMs} disabled={isPlaying}
+               onChange={e => setInputDelayMs(Number(e.target.value) || 0)}
+        />
+      </div>
     </div>
   )
 }

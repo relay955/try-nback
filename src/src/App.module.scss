@@ -1,56 +1,85 @@
 .app{
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   padding: 24px;
-  max-width: 640px;
   margin: 0 auto;
-  text-align: center;
-}
-
-.controls{
   display: flex;
-  gap: 8px;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 12px;
-}
 
-.speed{
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
+  .controls{
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 12px;
+    
+    button{
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      background-color: #ee90a1;
+      cursor: pointer;
+      transition: background-color .1s ease-out;
+      font-size: 16px;
+      color: #fff;
+      &:hover{
+        background-color: #f0a8b9;
+      }
+      &:active{}
+    }
+  }
 
-.status{
-  margin-bottom: 16px;
-  color: #555;
-}
+  .info{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    justify-content: center;
+  }
 
-.board{
-  display: grid;
-  place-items: center;
-  height: 240px;
-  border: 2px dashed #ddd;
-  border-radius: 12px;
-  margin-bottom: 12px;
-}
+  .board{
+    display: grid;
+    place-items: center;
+    height: 240px;
+    border: 2px dashed #b4b4b4;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    width: 640px;
+    max-width: 100%;
 
-.number{
-  font-size: 120px;
-  font-weight: 700;
-  line-height: 1;
-  transition: transform .1s ease, color .1s ease;
-}
+    .number{
+      font-size: 120px;
+      font-weight: 700;
+      line-height: 1;
+      transition: transform .1s ease-out, color .1s ease-out;
+      &[data-feedback="same"]{
+        color: #1a7f37; /* green */
+        transform: scale(1.06);
+      }
+      &[data-feedback="different"]{
+        color: #d1242f; /* red */
+        transform: scale(0.94);
+      }
+    }
+  }
 
-.number[data-feedback="same"]{
-  color: #1a7f37; /* green */
-  transform: scale(1.06);
-}
-
-.number[data-feedback="different"]{
-  color: #d1242f; /* red */
-  transform: scale(0.94);
-}
-
-.help{
-  color: #777;
+  .help{
+    color: #777;
+  }
+  .options{
+    margin-top: 12px;
+    display:grid;
+    grid-template-columns: 200px 300px;
+    align-items: center;
+    gap: 12px;
+    label{
+      text-align: right;
+    }
+    input{
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid #b2b2b2;
+      font-size: 16px;
+    }
+  }
 }
