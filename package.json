@@ -25,6 +25,9 @@
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
     "vite": "^7.1.2",
-    "sass": "^1.90.0"
+    "sass": "^1.90.0",
+    "react-use":"^17.6.0",
+    "immer": "^10.1.1",
+    "use-immer": "^0.11.0"
   }
 }
