@@ -14,8 +14,10 @@ function App() {
   const [sequence, setSequence] = useImmer<SequenceItem[]>([])
   const [currentIndex, setCurrentIndex] = useState<number>(-1)
   const [isPlaying, setIsPlaying] = useState<boolean>(false)
+  const [lastPlayTime, setLastPlayTime] = useState<string>("")
   
   //설정
+  const [rememberMs, setRememberMs] = useLocalStorage<number>("rememberMs",3000)
   const [maxAnswerMs, setMaxAnswerMs] = useLocalStorage<number>("maxAnswerMs",5000)
   const [inputDelayMs, setInputDelayMs] = useLocalStorage<number>("inputDelayMs",1500)
   const [sequenceLength, setSequenceLength] = useLocalStorage<number>("sequenceLength",10)
@@ -47,7 +49,7 @@ function App() {
 
   const goToNextItem = () => {
     if (currentIndex === sequence.length - 1) {
-      setIsPlaying(false)
+      stop();
       return
     }
     setCurrentIndex(prevIdx => prevIdx + 1)
@@ -59,11 +61,13 @@ function App() {
     generateSequence()
     setCurrentIndex(-1)
     setIsPlaying(true)
+    setLastPlayTime("")
     currentSeqTimeMs.current = 0
   }
 
   const stop = () => {
     setIsPlaying(false)
+    setLastPlayTime(new Date().toLocaleString())
   }
   
   //1tick = 50ms
@@ -132,12 +136,13 @@ function App() {
               const answered = sequence.filter((s, i) => i >= nBack && s.userAnswer !== undefined)
               const correct = answered.filter(s => s.userAnswer === s.correctValue).length
               const accuracy = judgeableCount > 0 ? Math.round((correct / judgeableCount) * 100) : 0
-              const times = answered.map(a => a.answeredTimeMs as number)
-              const avgMs = times.length > 0 ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : undefined
+              const correctAnswerTimes = answered.filter(s => s.userAnswer === s.correctValue).map(a => a.answeredTimeMs as number)
+              const avgMs = correctAnswerTimes.length > 0 ? Math.round(correctAnswerTimes.reduce((a, b) => a + b, 0) / correctAnswerTimes.length) : undefined
               return (
                 <div className={style.summary}> 
+                  <div className={style.summaryItem}><strong>{lastPlayTime}</strong></div>
                   <div className={style.summaryItem}>정답: <strong>{correct}</strong> / {judgeableCount} <span className={style.muted}>({accuracy}%)</span></div>
-                  <div className={style.summaryItem}>평균 지연: <strong>{avgMs ?? '—'}</strong> ms</div>
+                  <div className={style.summaryItem}>평균 지연(오답제외): <strong>{avgMs?.toLocaleString() ?? '—'}</strong> ms</div>
                 </div>
               )
             })()}
@@ -165,7 +170,7 @@ function App() {
                     <td>{s.number}</td>
                     <td>{valueToKorean(s.correctValue)}</td>
                     <td>{valueToKorean(s.userAnswer)}</td>
-                    <td>{s.answeredTimeMs ?? '—'}</td>
+                    <td>{s.answeredTimeMs?.toLocaleString() ?? '—'}</td>
                     <td>
                       {correct && <span className={style.badgeCorrect}>O</span>}
                       {incorrect && <span className={style.badgeWrong}>X</span>}
@@ -203,6 +208,13 @@ function App() {
                onChange={e => setNBack(Number(e.target.value) || 1)}
         />
 
+        <label>
+          최초 암기시간(ms)
+        </label>
+        <input type="number" min={500} step={100}
+               value={rememberMs} disabled={isPlaying}
+               onChange={e => setRememberMs(Number(e.target.value) || 0)}
+        />
 
         <label>
           최대 답변시간(ms)
