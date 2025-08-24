@@ -26,8 +26,6 @@ function App() {
 
   const canJudge = useMemo(() => currentIndex >= nBack, [currentIndex, nBack])
   const currentSeq:SequenceItem|undefined = useMemo(()=>sequence[currentIndex],[currentIndex,sequence])
-
-  const score = useMemo(()=> sequence.filter(s=>s.userAnswer === s.correctValue).length,[sequence])
   
   const generateSequence = () => {
     let result:SequenceItem[] = []
@@ -38,6 +36,13 @@ function App() {
       result.push({number, correctValue, userAnswer:undefined, answeredTimeMs:undefined})
     }
     setSequence(result)
+  }
+
+  const valueToKorean = (v: 'same' | 'different' | 'none' | undefined) => {
+    if (v === 'same') return '같음'
+    if (v === 'different') return '다름'
+    if (v === 'none') return '비교불가'
+    return '—'
   }
 
   const goToNextItem = () => {
@@ -100,7 +105,6 @@ function App() {
 
   const statusText = isPlaying ? '진행중' : '정지'
   const helperText = !canJudge && isPlaying ? `처음 ${nBack}개는 비교할 수 없어요` : '왼쪽 화살표=맞음, 오른쪽 화살표=틀림'
-
   return (
     <div className={style.app}>
       <h1>try N-back</h1>
@@ -111,7 +115,6 @@ function App() {
       <div className={style.info}>
         <div>상태: {statusText}</div>
         <div>{`문제: ${currentIndex + 1} / ${sequence.length}`}</div>
-        <div>점수: {score}</div>
       </div>
 
       <div className={style.board}>
@@ -121,6 +124,62 @@ function App() {
       </div>
 
       <div className={style.help}>{helperText}</div>
+      <div className={style.result}>
+        {!isPlaying && sequence.length > 0 && (
+          <div className={style.resultInner}>
+            {(() => {
+              const judgeableCount = Math.max(sequence.length - nBack, 0)
+              const answered = sequence.filter((s, i) => i >= nBack && s.userAnswer !== undefined)
+              const correct = answered.filter(s => s.userAnswer === s.correctValue).length
+              const accuracy = judgeableCount > 0 ? Math.round((correct / judgeableCount) * 100) : 0
+              const times = answered.map(a => a.answeredTimeMs as number)
+              const avgMs = times.length > 0 ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : undefined
+              return (
+                <div className={style.summary}> 
+                  <div className={style.summaryItem}>정답: <strong>{correct}</strong> / {judgeableCount} <span className={style.muted}>({accuracy}%)</span></div>
+                  <div className={style.summaryItem}>평균 지연: <strong>{avgMs ?? '—'}</strong> ms</div>
+                </div>
+              )
+            })()}
+            <table className={style.table}>
+              <thead>
+              <tr>
+                <th>#</th>
+                <th>숫자</th>
+                <th>정답</th>
+                <th>내 답</th>
+                <th>지연(ms)</th>
+                <th>판정</th>
+              </tr>
+              </thead>
+              <tbody>
+              {sequence.map((s, i) => {
+                const judgeable = i >= nBack
+                const answered = s.userAnswer !== undefined
+                const correct = judgeable && answered && s.userAnswer === s.correctValue
+                const incorrect = judgeable && answered && s.userAnswer !== s.correctValue
+                const rowClass = correct ? style.rowCorrect : (incorrect ? style.rowWrong : style.rowMuted)
+                return (
+                  <tr key={i} className={rowClass}>
+                    <td>{i + 1}</td>
+                    <td>{s.number}</td>
+                    <td>{valueToKorean(s.correctValue)}</td>
+                    <td>{valueToKorean(s.userAnswer)}</td>
+                    <td>{s.answeredTimeMs ?? '—'}</td>
+                    <td>
+                      {correct && <span className={style.badgeCorrect}>O</span>}
+                      {incorrect && <span className={style.badgeWrong}>X</span>}
+                      {!judgeable && <span className={style.badgeMuted}>—</span>}
+                      {judgeable && !answered && <span className={style.badgeMuted}>미응답</span>}
+                    </td>
+                  </tr>
+                )
+              })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
       <div className={style.options}>
         <label>
           문제 갯수
